@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +22,14 @@ import {
   Wrench,
   CheckCircle
 } from "lucide-react";
+import ApiServiceV1 from '@/Utils/ApiServiceV1';
 
 const Registration = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [applicationList, setApplicationList] = useState([])
 
   const registrations = [
     { 
@@ -129,6 +131,23 @@ const Registration = () => {
     pending: registrations.filter(r => r.status !== 'approved' && r.status !== 'rejected').length,
     rejected: registrations.filter(r => r.status === 'rejected').length
   };
+
+   const fetchApplicationList = async () => {
+      try {
+        const response = await ApiServiceV1.get("/getapplications")
+        if (response.status === 200) {
+          setApplicationList(response.data.applications)
+          return
+        }
+      } catch (error) {
+  
+        return error
+      }
+    }
+  
+    useEffect(() => {
+      fetchApplicationList()
+    }, [])
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

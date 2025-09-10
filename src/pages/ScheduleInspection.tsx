@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,9 @@ import { format } from "date-fns";
 import { ArrowLeft, CalendarIcon, MapPin, User, Clock, Save, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/Footer";
+import axios from "axios";
+import { BASE_URL } from "@/Utils/ApiServiceV1";
+import { toast } from "@/hooks/use-toast";
 
 const ScheduleInspection = () => {
   const [formData, setFormData] = useState({
@@ -26,9 +29,91 @@ const ScheduleInspection = () => {
     priority: "",
     notes: ""
   });
-  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  // const date = new Date()
   const [selectedTime, setSelectedTime] = useState("");
+
   const navigate = useNavigate();
+
+  const [businessNameList, setBusinessNameList] = useState([])
+  const [singleBusiness, setSingleBusiness] = useState([])
+  const fetchBusinessNameList = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/getpendingapplications`)
+      if (response.status === 200) setBusinessNameList(response?.data)
+    } catch (error) {
+      return error
+    }
+  }
+  const fetchBusinessById = async (_id) => {
+
+    try {
+      const response = await axios.post(`${BASE_URL}/getapplicationbyid`, { application_id: _id })
+      if (response.status === 200) {
+        setSingleBusiness(response?.data)
+        setFormData({
+          ...formData,
+          businessType: response.data[0].business_type,
+          address: response.data[0].address,
+          district: response.data[0].district,
+          email: response.data[0].email,
+          phone: response.data[0].phone_number,
+          contactPerson: response.data[0].owner_name
+        })
+      }
+    } catch (error) {
+      return error
+    }
+  }
+
+
+
+
+  useEffect(() => {
+    fetchBusinessNameList()
+  }, [])
+
+  const postInspection = async () => {
+    const fD = new FormData()
+    fD.append("application_id", formData.businessName)
+    fD.append("inspection_type", formData.inspectionType)
+    fD.append("assigned_inspector", formData.inspector)
+    fD.append("priority", formData.priority)
+    fD.append("additional_notes", formData.notes)
+    if (selectedDate) {
+      fD.append("inspection_date", selectedDate.toISOString()); // e.g. "2025-09-10T08:00:00.000Z"
+    }
+
+    fD.append("inspection_time", selectedTime)
+
+    try {
+      const response = await axios.post(`${BASE_URL}/scheduleinspection`, fD, { headers: { "Content-Type": "application/json" } })
+      if (response.status === 200) {
+        toast({ title: "Inspection Succesfully Posted", description: response.data.message })
+
+        navigate(-1)
+      }
+    } catch (error) {
+      return error
+    }
+  }
+
+
+
+
+  useEffect(() => {
+
+    const foundBusiness = businessNameList.find(
+      (item) => item.application_id === Number(formData.businessName)
+    );
+
+
+    if (foundBusiness?.application_id) {
+      fetchBusinessById(foundBusiness.application_id)
+    }
+
+
+  }, [formData.businessName])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +122,9 @@ const ScheduleInspection = () => {
     // You can add toast notification here
     navigate('/inspections');
   };
+
+  // console.log(formData);
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -66,19 +154,71 @@ const ScheduleInspection = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    {/* <div>
+                      <Label htmlFor="businessName">Business Name *</Label>
+                      <Select value={formData.businessName} onValueChange={(value) => setFormData({ ...formData, businessName: value }
+
+                      )}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select business name" />
+                        </SelectTrigger>
+
+                        {businessNameList?.map((item) => {
+                          console.log(item);
+                          
+                          return (<SelectContent>
+                            <SelectItem value={item?.application_id}>{item?.business_name}</SelectItem>
+                          </SelectContent>)
+                        })}
+                      </Select>
+                    </div> */}
+
                     <div>
                       <Label htmlFor="businessName">Business Name *</Label>
-                      <Input
-                        id="businessName"
+                      <Select
                         value={formData.businessName}
-                        onChange={(e) => setFormData({...formData, businessName: e.target.value})}
-                        placeholder="Enter business name"
-                        required
-                      />
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, businessName: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue>
+                            {
+                              businessNameList.find(
+                                (item) => String(item.application_id) === String(formData.businessName)
+                              )?.business_name || "Select business name"
+                            }
+                          </SelectValue>
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {businessNameList?.map((item) => (
+                            <SelectItem key={item.application_id} value={String(item.application_id)}>
+                              {item.business_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+
+
+
+
                     <div>
+
+
                       <Label htmlFor="businessType">Business Type *</Label>
-                      <Select value={formData.businessType} onValueChange={(value) => setFormData({...formData, businessType: value})}>
+                      <Input
+                        id="contactPerson"
+                        value={formData.businessType}
+                        onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
+                        placeholder="Business Type"
+                        required
+                        readOnly
+                      />
+                      {/* <Select value={formData.businessType} onValueChange={(value) => setFormData({ ...formData, businessType: value })}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select business type" />
                         </SelectTrigger>
@@ -89,7 +229,7 @@ const ScheduleInspection = () => {
                           <SelectItem value="general-trader">General Trader</SelectItem>
                           <SelectItem value="manufacturing">Manufacturing</SelectItem>
                         </SelectContent>
-                      </Select>
+                      </Select> */}
                     </div>
                   </div>
 
@@ -98,15 +238,16 @@ const ScheduleInspection = () => {
                     <Textarea
                       id="address"
                       value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       placeholder="Enter complete business address"
                       required
+                      readOnly
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="district">District *</Label>
-                    <Select value={formData.district} onValueChange={(value) => setFormData({...formData, district: value})}>
+                    <Select disabled value={formData.district} onValueChange={(value) => setFormData({ ...formData, district: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select district" />
                       </SelectTrigger>
@@ -133,9 +274,10 @@ const ScheduleInspection = () => {
                       <Input
                         id="contactPerson"
                         value={formData.contactPerson}
-                        onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
                         placeholder="Contact person name"
                         required
+                        readOnly
                       />
                     </div>
                     <div>
@@ -143,9 +285,10 @@ const ScheduleInspection = () => {
                       <Input
                         id="phone"
                         value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         placeholder="Phone number"
                         required
+                        readOnly
                       />
                     </div>
                     <div>
@@ -154,8 +297,9 @@ const ScheduleInspection = () => {
                         id="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         placeholder="Email address"
+                        readOnly
                       />
                     </div>
                   </div>
@@ -170,7 +314,7 @@ const ScheduleInspection = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="inspector">Assign Inspector *</Label>
-                      <Select value={formData.inspector} onValueChange={(value) => setFormData({...formData, inspector: value})}>
+                      <Select value={formData.inspector} onValueChange={(value) => setFormData({ ...formData, inspector: value })}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select inspector" />
                         </SelectTrigger>
@@ -184,7 +328,7 @@ const ScheduleInspection = () => {
                     </div>
                     <div>
                       <Label htmlFor="inspectionType">Inspection Type *</Label>
-                      <Select value={formData.inspectionType} onValueChange={(value) => setFormData({...formData, inspectionType: value})}>
+                      <Select value={formData.inspectionType} onValueChange={(value) => setFormData({ ...formData, inspectionType: value })}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select inspection type" />
                         </SelectTrigger>
@@ -199,7 +343,7 @@ const ScheduleInspection = () => {
                     </div>
                     <div>
                       <Label htmlFor="priority">Priority *</Label>
-                      <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value})}>
+                      <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select priority" />
                         </SelectTrigger>
@@ -217,7 +361,7 @@ const ScheduleInspection = () => {
                     <Textarea
                       id="notes"
                       value={formData.notes}
-                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       placeholder="Any additional instructions or notes for the inspector"
                     />
                   </div>
@@ -232,7 +376,7 @@ const ScheduleInspection = () => {
                   <CardTitle>Schedule Date & Time</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
+                  {/* <div>
                     <Label>Select Date *</Label>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -250,7 +394,33 @@ const ScheduleInspection = () => {
                         />
                       </PopoverContent>
                     </Popover>
+                  </div> */}
+
+
+
+                  ...
+
+                  <div>
+                    <Label>Select Date *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          initialFocus
+                          disabled={{ before: new Date() }} // 🔒 disables all past dates
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
+
 
                   <div>
                     <Label htmlFor="time">Select Time *</Label>
@@ -298,7 +468,7 @@ const ScheduleInspection = () => {
               </Card>
 
               <div className="space-y-3">
-                <Button type="submit" className="w-full">
+                <Button type="button" className="w-full" onClick={postInspection}>
                   <Save className="h-4 w-4 mr-2" />
                   Schedule Inspection
                 </Button>
@@ -311,7 +481,7 @@ const ScheduleInspection = () => {
           </div>
         </form>
       </div>
-      
+
       <Footer />
     </div>
   );

@@ -1,18 +1,19 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
-import { 
-  FileText, 
-  Plus, 
-  Clock, 
-  CheckCircle, 
+import {
+  FileText,
+  Plus,
+  Clock,
+  CheckCircle,
   AlertTriangle,
   IndianRupee,
   Calendar,
   Download
 } from "lucide-react";
+import ApiServiceV1 from '@/Utils/ApiServiceV1';
 
 const ApplicantDashboard = () => {
   const navigate = useNavigate();
@@ -42,6 +43,8 @@ const ApplicantDashboard = () => {
       default: return <AlertTriangle className="h-4 w-4 text-gray-600" />;
     }
   };
+
+ 
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

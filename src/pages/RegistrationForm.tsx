@@ -7,10 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Upload, 
-  FileText, 
-  IndianRupee, 
+import {
+  Upload,
+  FileText,
+  IndianRupee,
   Save,
   ArrowLeft,
   Building2,
@@ -18,12 +18,24 @@ import {
   MapPin,
   Phone
 } from "lucide-react";
+import ApiServiceV1 from '@/Utils/ApiServiceV1';
+import axios from 'axios';
 
 const RegistrationForm = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const businessType = searchParams.get('type') || 'weighbridge';
+  const price = businessType === "weighbridge" && '5000'
+  const businessTypes = [
+    { value: 'weighbridge', label: 'Weighbridge', fee: 5000 },
+    { value: 'petrolpump', label: 'Petrol Pump', fee: 7500 },
+    { value: 'scale', label: 'Scale', fee: 2500 },
+    { value: 'packer', label: 'Packer', fee: 3000 },
+    { value: 'importer', label: 'Importer', fee: 4000 },
+    { value: 'dealer', label: 'Dealer', fee: 2000 },
+    { value: 'repairer', label: 'Repairer', fee: 1500 }
+  ];
 
   const [formData, setFormData] = useState({
     businessType: businessType,
@@ -35,6 +47,7 @@ const RegistrationForm = () => {
     phone: '',
     email: '',
     gstNo: '',
+    price: price,
     documents: {
       businessLicense: null as File | null,
       gstCertificate: null as File | null,
@@ -43,23 +56,30 @@ const RegistrationForm = () => {
     }
   });
 
-  const businessTypes = [
-    { value: 'weighbridge', label: 'Weighbridge', fee: 5000 },
-    { value: 'petrolpump', label: 'Petrol Pump', fee: 7500 },
-    { value: 'scale', label: 'Scale', fee: 2500 },
-    { value: 'packer', label: 'Packer', fee: 3000 },
-    { value: 'importer', label: 'Importer', fee: 4000 },
-    { value: 'dealer', label: 'Dealer', fee: 2000 },
-    { value: 'repairer', label: 'Repairer', fee: 1500 }
-  ];
+
 
   const getCurrentBusinessType = () => {
     return businessTypes.find(type => type.value === formData.businessType);
   };
 
+  // const handleInputChange = (field: string, value: string,) => {
+  //   setFormData(prev => ({ ...prev, [field]: value }));
+
+  // };
+
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'businessType') {
+      const selectedType = businessTypes.find(type => type.value === value);
+      setFormData(prev => ({
+        ...prev,
+        businessType: value,
+        price: selectedType ? selectedType.fee.toString() : "",
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
+
 
   const handleFileUpload = (field: string, file: File) => {
     setFormData(prev => ({
@@ -76,32 +96,71 @@ const RegistrationForm = () => {
     return { baseFee, processingFee, total };
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate required fields
-    if (!formData.businessName || !formData.ownerName || !formData.phone) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
+  // const handleSubmit = (e: React.FormEvent) => {
+  //   e.preventDefault();
 
-    // Generate application ID
-    const applicationId = `AP${Date.now().toString().slice(-6)}`;
-    
-    toast({
-      title: "Application Submitted",
-      description: `Your application ${applicationId} has been submitted successfully`,
-    });
+  //   // Validate required fields
+  //   if (!formData.businessName || !formData.ownerName || !formData.phone) {
+  //     toast({
+  //       title: "Validation Error",
+  //       description: "Please fill in all required fields",
+  //       variant: "destructive",
+  //     });
+  //     return;
+  //   }
 
-    // Navigate to payment page
-    navigate(`/payment?applicationId=${applicationId}&amount=${calculateFee().total}`);
-  };
+  //   // Generate application ID
+  //   const applicationId = `AP${Date.now().toString().slice(-6)}`;
+
+  //   toast({
+  //     title: "Application Submitted",
+  //     description: `Your application ${applicationId} has been submitted successfully`,
+  //   });
+
+  //   // Navigate to payment page
+  //   navigate(`/payment?applicationId=${applicationId}&amount=${calculateFee().total}`);
+  // };
 
   const fees = calculateFee();
+
+
+
+
+  const handleSubmitForm = async () => {
+    const fD = new FormData()
+    fD.append("business_type", formData.businessType)
+    fD.append("business_name", formData.businessName)
+    fD.append("gst_number", formData.gstNo)
+    fD.append("owner_name", formData.ownerName)
+    fD.append("phone_number", formData.phone)
+    fD.append("email", formData.email)
+    fD.append("address", formData.address)
+    fD.append("district", formData.district)
+    fD.append("pin_code", formData.pincode)
+    fD.append("price", formData.price)
+    if (formData.documents.businessLicense)
+      fD.append('business_license', formData.documents.businessLicense);
+
+    if (formData.documents.gstCertificate)
+      fD.append('gst_certificate', formData.documents.gstCertificate);
+
+    if (formData.documents.addressProof)
+      fD.append('address_proof', formData.documents.addressProof);
+
+    if (formData.documents.idProof)
+      fD.append('id_proof', formData.documents.idProof);
+    try {
+
+
+      const response = await axios.post('https://gsm.garudalytics.com:3006/addapplication', fD, { headers: { "Content-Type": "multi-part/formdata" } })
+      if (response.status === 200) return window.location.href = response?.data?.payment_links.web
+      return
+    } catch (error) {
+      toast({ title: "form submission failed", description: "Network Error" })
+      return error
+    }
+  }
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -122,7 +181,7 @@ const RegistrationForm = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Registration Form */}
           <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form className="space-y-6">
               {/* Business Information */}
               <Card>
                 <CardHeader>
@@ -197,7 +256,7 @@ const RegistrationForm = () => {
                         id="phone"
                         value={formData.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
-                        placeholder="+91 XXXXXXXXXX"
+                        placeholder="Enter Phone Number"
                         required
                       />
                     </div>
@@ -311,7 +370,7 @@ const RegistrationForm = () => {
                 <Button type="button" variant="outline" onClick={() => navigate('/applicant-dashboard')}>
                   Save as Draft
                 </Button>
-                <Button type="submit" className="flex-1">
+                <Button type="button" className="flex-1" onClick={handleSubmitForm}>
                   <Save className="h-4 w-4 mr-2" />
                   Submit Application
                 </Button>
@@ -344,7 +403,7 @@ const RegistrationForm = () => {
                     <span>₹{fees.total}</span>
                   </div>
                 </div>
-                
+
                 <div className="text-xs text-muted-foreground space-y-1">
                   <p>• Processing time: 15-20 working days</p>
                   <p>• Includes site inspection</p>

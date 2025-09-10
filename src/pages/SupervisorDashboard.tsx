@@ -1,24 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
-import { 
-  Users, 
-  TrendingUp, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Users,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
   FileText,
   BarChart3,
   Clock,
   IndianRupee,
   Calendar,
-  ClipboardList
+  ClipboardList,
+  User2Icon
 } from "lucide-react";
 import { toast } from "sonner";
+import axios from 'axios';
+import { BASE_URL } from '@/Utils/ApiServiceV1';
 
 const SupervisorDashboard = () => {
   const navigate = useNavigate();
+
 
   const performanceData = [
     { inspector: "Rajesh Kumar", inspections: 25, compliance: 92, pending: 3 },
@@ -50,10 +54,44 @@ const SupervisorDashboard = () => {
   const handleReview = (id: string, action: 'approve' | 'reject') => {
     const actionText = action === 'approve' ? 'approved' : 'rejected';
     toast.success(`Review ${actionText} successfully`);
-    
+
     // In real app, would update the backend here
     console.log(`Review ${id} ${actionText}`);
   };
+
+  const handleAssign = (e, type) => {
+    e.preventDefault()
+    navigate("/schedule-inspection")
+  }
+
+  const [pendingCount, setPendingCount] = useState([])
+  const [latestRegistrations, setLatestRegistrations] = useState([])
+
+  const fetchApplicationCount = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/getpendingapplicationscount`)
+      if (response.status === 200) {
+        setPendingCount(response.data)
+      }
+    } catch (error) {
+      return error
+    }
+  }
+  const fetchLatestRegistations = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/getnewregistrations`)
+      if (response.status === 200) {
+        setLatestRegistrations(response.data)
+      }
+    } catch (error) {
+      return error
+    }
+  }
+
+  useEffect(() => {
+    fetchApplicationCount()
+    fetchLatestRegistations()
+  }, [])
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -88,7 +126,7 @@ const SupervisorDashboard = () => {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-orange-600">10</div>
+              <div className="text-2xl font-bold text-orange-600">{pendingCount[0]?.count}</div>
               <div className="text-sm text-muted-foreground">Pending Reviews</div>
             </CardContent>
           </Card>
@@ -99,6 +137,46 @@ const SupervisorDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Pending Reviews */}
+        <Card>
+          <CardHeader>
+            <CardTitle>New Registrations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {latestRegistrations.map(review => (
+                <Card key={review.id} className="hover:shadow-md">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <User2Icon className="h-8 w-8 text-orange-500" />
+                        <div>
+                          <h3 className="font-semibold">{review.business_name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            <b>Owner</b>: {review.owner_name}
+                          </p>
+                          {/* <p className="text-xs text-muted-foreground mt-1">
+                            Submitted: {review.submitted}
+                          </p> */}
+                        </div>
+                      </div>
+                      <div className="text-right">
+
+                        <div className="mt-2 flex gap-2">
+
+                          <p className="text-sm text-muted-foreground">
+                            <b>Location</b>: {review.address}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Pending Reviews */}
         <Card>
@@ -128,14 +206,14 @@ const SupervisorDashboard = () => {
                           {review.priority.toUpperCase()}
                         </Badge>
                         <div className="mt-2 flex gap-2">
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => handleReview(review.id, 'reject')}
                           >
                             Reject
                           </Button>
-                          <Button 
+                          <Button
                             size="sm"
                             onClick={() => handleReview(review.id, 'approve')}
                           >
