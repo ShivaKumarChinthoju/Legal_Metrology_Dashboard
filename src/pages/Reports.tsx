@@ -1,0 +1,271 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  FileText,
+  Download,
+  Search,
+  Filter,
+  Calendar,
+  MapPin,
+  QrCode,
+  Eye,
+  TrendingUp,
+  BarChart3,
+  Users,
+  Building,
+  Shield,
+  Activity
+} from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import jsPDF from 'jspdf';
+import apGovtLogo from '@/assets/ap-govt-logo.png';
+import garudalyticsLogo from '@/assets/garudalytics-logo.png';
+import reportQRCode from '@/assets/report-qr-code.png';
+import apDistrictsMap from '@/assets/ap-districts-map.png';
+
+const Reports = () => {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [reportType, setReportType] = useState("");
+
+  const reports = [
+    { 
+      id: "RPT-001", 
+      title: "Monthly Inspection Report", 
+      type: "Inspection", 
+      status: "completed", 
+      date: "2024-01-28", 
+      district: "Visakhapatnam",
+      description: "Comprehensive monthly inspection summary with compliance metrics",
+      thumbnail: "inspection-summary"
+    },
+    { 
+      id: "RPT-002", 
+      title: "Analytics Summary", 
+      type: "Analytics", 
+      status: "completed", 
+      date: "2024-01-27", 
+      district: "All Districts",
+      description: "Data analytics report with performance insights and trends",
+      thumbnail: "analytics-chart"
+    },
+    { 
+      id: "RPT-003", 
+      title: "Compliance Report", 
+      type: "Compliance", 
+      status: "completed", 
+      date: "2024-01-26", 
+      district: "Krishna",
+      description: "Legal metrology compliance status across all registered businesses",
+      thumbnail: "compliance-check"
+    },
+    { 
+      id: "RPT-004", 
+      title: "License Renewal Report", 
+      type: "Licensing", 
+      status: "completed", 
+      date: "2024-01-25", 
+      district: "Guntur",
+      description: "Status of license renewals and upcoming expirations",
+      thumbnail: "license-renewal"
+    },
+    { 
+      id: "RPT-005", 
+      title: "Inspector Performance", 
+      type: "Performance", 
+      status: "completed", 
+      date: "2024-01-24", 
+      district: "All Districts",
+      description: "Inspector productivity and efficiency analysis",
+      thumbnail: "performance-metrics"
+    },
+    { 
+      id: "RPT-006", 
+      title: "Revenue Analysis", 
+      type: "Financial", 
+      status: "completed", 
+      date: "2024-01-23", 
+      district: "All Districts",
+      description: "Fee collection and revenue generation analysis",
+      thumbnail: "revenue-chart"
+    }
+  ];
+
+  const generateReport = (report: any) => {
+    const doc = new jsPDF();
+    
+    // Add header with government branding
+    doc.setFillColor(22, 100, 41); // Government green
+    doc.rect(0, 0, 220, 40, 'F');
+    
+    // Add AP Government logo and title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.text('GOVERNMENT OF ANDHRA PRADESH', 105, 15, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('Legal Metrology Department', 105, 25, { align: 'center' });
+    doc.text('Official Report', 105, 35, { align: 'center' });
+    
+    // Reset text color for content
+    doc.setTextColor(0, 0, 0);
+    
+    // Report header section
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15, 50, 180, 25, 'F');
+    doc.setFontSize(16);
+    doc.text('Report Details', 20, 63);
+    
+    // Report content
+    doc.setFontSize(12);
+    doc.text('Report Title: ' + report.title, 20, 85);
+    doc.text('Report ID: ' + report.id, 20, 95);
+    doc.text('Report Type: ' + report.type, 20, 105);
+    doc.text('District: ' + report.district, 20, 115);
+    doc.text('Generated Date: ' + report.date, 20, 125);
+    doc.text('Status: ' + report.status.toUpperCase(), 20, 135);
+    
+    // Add description
+    doc.text('Description:', 20, 150);
+    const splitDescription = doc.splitTextToSize(report.description, 170);
+    doc.text(splitDescription, 20, 160);
+    
+    // Add QR code section
+    doc.setFillColor(240, 240, 240);
+    doc.rect(15, 190, 40, 40, 'F');
+    doc.setFontSize(10);
+    doc.text('QR Code', 35, 212, { align: 'center' });
+    doc.text('(Verification)', 35, 220, { align: 'center' });
+    
+    // Add map section  
+    doc.setFillColor(230, 255, 230);
+    doc.rect(65, 190, 50, 40, 'F');
+    doc.text('District Map', 90, 212, { align: 'center' });
+    doc.text(report.district, 90, 220, { align: 'center' });
+    
+    // Add footer
+    doc.setFillColor(22, 100, 41);
+    doc.rect(0, 250, 220, 25, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.text('Generated by Legal Metrology System | Powered by Garudalytics', 105, 262, { align: 'center' });
+    doc.text('This is a computer generated report and does not require signature', 105, 270, { align: 'center' });
+    
+    // Save the PDF
+    doc.save('report-' + report.id + '.pdf');
+  };
+
+  const getThumbnailIcon = (thumbnail: string) => {
+    const iconProps = { className: "h-12 w-12 text-primary" };
+    
+    switch (thumbnail) {
+      case 'inspection-summary':
+        return <Shield {...iconProps} />;
+      case 'analytics-chart':
+        return <BarChart3 {...iconProps} />;
+      case 'compliance-check':
+        return <Shield {...iconProps} />;
+      case 'license-renewal':
+        return <FileText {...iconProps} />;
+      case 'performance-metrics':
+        return <TrendingUp {...iconProps} />;
+      case 'revenue-chart':
+        return <Activity {...iconProps} />;
+      default:
+        return <FileText {...iconProps} />;
+    }
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="bg-gradient-to-r from-primary/10 to-accent/10 p-6 rounded-lg border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <img src={apGovtLogo} alt="AP Government" className="h-16 w-16" />
+            <div>
+              <h1 className="text-2xl font-bold">Government of Andhra Pradesh</h1>
+              <p className="text-sm text-muted-foreground">Legal Metrology Department</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <img src={garudalyticsLogo} alt="Garudalytics" className="h-16 w-16" />
+            <div className="flex space-x-2">
+              <img src={reportQRCode} alt="QR Code" className="h-12 w-12" />
+              <img src={apDistrictsMap} alt="Districts Map" className="h-12 w-16 rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="all">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
+          <TabsTrigger value="all">All Reports</TabsTrigger>
+          <TabsTrigger value="inspection">Inspection</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          <TabsTrigger value="licensing">Licensing</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="financial">Financial</TabsTrigger>
+        </TabsList>
+
+        {/* Helper functions */}
+        {['all', 'inspection', 'analytics', 'compliance', 'licensing', 'performance', 'financial'].map(tabValue => (
+          <TabsContent key={tabValue} value={tabValue}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {reports
+                .filter(report => tabValue === 'all' || report.type.toLowerCase() === tabValue)
+                .map(report => (
+                <Card key={report.id} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    {/* Thumbnail */}
+                    <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg mb-4 flex items-center justify-center">
+                      <div className="text-center">
+                        {getThumbnailIcon(report.thumbnail)}
+                        <p className="text-xs text-muted-foreground mt-2">{report.type} Report</p>
+                      </div>
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-lg text-foreground">{report.title}</h3>
+                        <p className="text-sm text-muted-foreground">{report.description}</p>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground">Report ID: {report.id}</p>
+                          <p className="text-muted-foreground">District: {report.district}</p>
+                          <p className="text-muted-foreground">Date: {report.date}</p>
+                        </div>
+                        <Badge variant="secondary">{report.type}</Badge>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex space-x-2 pt-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/reports/${report.id}/details`)}>
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Button>
+                        <Button size="sm" onClick={() => generateReport(report)} className="flex-1">
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        ))}
+      </Tabs>
+    </div>
+  );
+};
+
+export default Reports;
